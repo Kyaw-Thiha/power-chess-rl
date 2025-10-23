@@ -55,7 +55,7 @@ State Engine::initial_state() const {
 
 std::vector<Move> Engine::legal_moves_from(const State &s, Square from) const {
   std::vector<Move> out;
-  if (from < 0 || from >= BOARD_N * BOARD_N)
+  if (from >= BOARD_N * BOARD_N)
     return out;
 
   const piece::Code pc = s.board[from];

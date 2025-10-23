@@ -8,10 +8,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pybind11)
 
-# Library target: engine core
+# Library target: engine core + units
+file(GLOB CHESS_UNIT_SOURCES
+  CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/units/*.cpp
+)
+
+
 add_library(chess_engine_core
   src/engine.cpp
+  ${CHESS_UNIT_SOURCES}
 )
+# Build the core as PIC so it can link into the shared pybind module
+set_target_properties(chess_engine_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(chess_engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(chess_engine_core PUBLIC cxx_std_17)
 target_compile_options(chess_engine_core PRIVATE -Wall -Wextra -Wpedantic)
@@ -26,3 +36,25 @@ target_link_libraries(_ccore PRIVATE chess_engine_core)
 install(TARGETS _ccore
   LIBRARY DESTINATION custom_chess/engine
 )
+
+# ===== Tests =====
+include(CTest)                # provides BUILD_TESTING option
+if (BUILD_TESTING)
+  include(FetchContent)
+  FetchContent_Declare(
+    Catch2
+    URL https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.3.tar.gz
+  )
+  FetchContent_MakeAvailable(Catch2)
+
+  add_executable(chess_engine_tests
+    tests/test_engine.cpp
+    tests/test_pawn.cpp
+  )
+  target_include_directories(chess_engine_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(chess_engine_tests PRIVATE chess_engine_core Catch2::Catch2WithMain)
+  target_compile_features(chess_engine_tests PRIVATE cxx_std_17)
+  target_compile_options(chess_engine_tests PRIVATE -Wall -Wextra -Wpedantic)
+
+  add_test(NAME chess_core_tests COMMAND chess_engine_tests)
+endif()
