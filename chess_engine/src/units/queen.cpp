@@ -11,7 +11,7 @@
 
 namespace engine {
 
-class King : public Unit {
+class Queen : public Unit {
 public:
   using Unit::Unit; // inherit ctor
 
@@ -19,7 +19,6 @@ public:
     std::vector<Move> moves;
     int row = Engine::row(from);
     int col = Engine::col(from);
-    int dir = (owner_ == 0) ? -1 : +1;
 
     constexpr std::array<Vec2, 8> directions = {{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 
@@ -27,28 +26,24 @@ public:
       int new_row = row + direction.row;
       int new_col = col + direction.col;
 
-      // Skip move if the move ends up out of the board
-      if (new_row < 0 || new_row >= BOARD_N) {
-        continue;
-      }
-      if (new_col < 0 || new_col >= BOARD_N) {
-        continue;
-      }
+      // Continue sliding in this direction until blocked
+      while (new_row >= 0 && new_row < BOARD_N && new_col >= 0 && new_col < BOARD_N) {
+        Square new_pos = Engine::get_pos(new_row, new_col);
+        const piece::Code new_pos_piece = state.board[new_pos];
 
-      Square new_pos = Engine::get_pos(new_row, new_col);
-      const piece::Code new_pos_piece = state.board[new_pos];
+        bool is_empty = piece::is_empty(new_pos_piece);
+        bool is_enemy = (owner_ == 0) ? piece::is_p2(new_pos_piece) : piece::is_p1(new_pos_piece);
 
-      // Check if new position is empty or is enemy
-      bool is_empty = piece::is_empty(new_pos_piece);
-      bool is_enemy = false;
-      if (owner_ == 0) {
-        is_enemy = piece::is_p2(new_pos_piece);
-      } else {
-        is_enemy = piece::is_p1(new_pos_piece);
-      }
+        if (is_empty || is_enemy) {
+          moves.push_back(Move{from, new_pos});
+        }
 
-      if (is_empty || is_enemy) {
-        moves.push_back(Move{from, new_pos});
+        // Stop sliding if the path is blocked (enemy or own piece)
+        if (!is_empty)
+          break;
+
+        new_row += direction.row;
+        new_col += direction.col;
       }
     }
 
@@ -56,10 +51,11 @@ public:
   }
 
   char symbol() const override {
-    return owner_ == 0 ? 'b' : 'B';
+    return owner_ == 0 ? 'q' : 'Q';
   }
+
   std::unique_ptr<Unit> clone() const override {
-    return std::make_unique<King>(*this);
+    return std::make_unique<Queen>(*this);
   }
 };
 
