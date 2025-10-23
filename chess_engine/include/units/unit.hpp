@@ -8,20 +8,41 @@
 
 namespace engine {
 
+/**
+ * @brief Base class for all chess-like units (pieces).
+ * Provides polymorphic move generation.
+ */
 class Unit {
 public:
-  explicit Unit(int owner) : owner_{owner} {}
+  explicit Unit(Player owner) : owner_(owner) {}
   virtual ~Unit() = default;
 
-  // Pure virtual: every piece implements this.
+  /// @return Which player owns this unit (0 = P1, 1 = P2).
+  /**
+   * @brief Gets the owner of the unit
+   * @return Which player owns this unit (0 = P1, 1 = P2).
+   */
+  Player owner() const {
+    return owner_;
+  }
+
+  /**
+   * @brief Generate all legal moves for this unit from the given square.
+   */
   virtual std::vector<Move> get_legal_moves(const State &state, Square from) const = 0;
 
-  // Optional helpers
+  /**
+   * @brief Symbolic representation (for rendering / debugging).
+   */
   virtual char symbol() const = 0;
+
+  /**
+   * @brief Polymorphic clone
+   */
   virtual std::unique_ptr<Unit> clone() const = 0;
 
 protected:
-  int owner_ = 0; // 0=P1, 1=P2
+  Player owner_ = 0; // 0=P1, 1=P2
 };
 
 } // namespace engine

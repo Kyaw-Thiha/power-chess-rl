@@ -3,7 +3,7 @@
 #include "chess/move.hpp"
 #include "chess/piece.hpp"
 #include "chess/state.hpp"
-#include "unit.cpp"
+#include "units/unit.hpp"
 
 #include <array>
 #include <memory>

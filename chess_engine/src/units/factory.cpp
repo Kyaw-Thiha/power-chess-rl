@@ -6,7 +6,7 @@
 #include "pawn.cpp"
 #include "queen.cpp"
 #include "rook.cpp"
-#include "unit.cpp"
+#include "units/unit.hpp"
 
 namespace engine {
 
