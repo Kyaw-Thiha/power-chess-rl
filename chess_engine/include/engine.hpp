@@ -1,13 +1,14 @@
 #pragma once
 /**
  * @file engine.hpp
- * @brief Stateless rule engine operating on cc::State.
+ * @brief Stateless rule engine operating on engine::State.
  */
 
 #include "types.hpp"
+
 #include <vector>
 
-namespace cc {
+namespace engine {
 
 /**
  * @brief Engine exposes rule queries (legal moves) and state transitions.
@@ -33,14 +34,20 @@ public:
    * @param m Move to apply (must be legal).
    * @return StepResult containing termination and reward-from-P0.
    */
-  StepResult step(State &s, const Move &m) const;
+  StepResult apply_move(State &s, const Move &m) const;
+
+  bool is_legal(const State &s, const Move &m) const;
 
   /// Helpers for row/col/index conversions.
-  static inline int r(Square sq) { return static_cast<int>(sq) / BOARD_N; }
-  static inline int c(Square sq) { return static_cast<int>(sq) % BOARD_N; }
-  static inline Square sq(int r, int c) {
+  static inline int row(Square sq) {
+    return static_cast<int>(sq) / BOARD_N;
+  }
+  static inline int col(Square sq) {
+    return static_cast<int>(sq) % BOARD_N;
+  }
+  static inline Square get_pos(int r, int c) {
     return static_cast<Square>(r * BOARD_N + c);
   }
 };
 
-} // namespace cc
+} // namespace engine

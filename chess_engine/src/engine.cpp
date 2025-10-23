@@ -1,7 +1,10 @@
 #include "engine.hpp"
+
+#include "types.hpp"
+
 #include <algorithm>
 
-namespace cc {
+namespace engine {
 
 static inline bool in_bounds(int r, int c) {
   return r >= 0 && r < BOARD_N && c >= 0 && c < BOARD_N;
@@ -9,16 +12,16 @@ static inline bool in_bounds(int r, int c) {
 
 State Engine::initial_state() const {
   State s;
-  s.board.fill(EMPTY);
+  s.board.fill(piece::EMPTY);
 
   // Simple symmetric setup (top = P2, bottom = P1).
-  s.board[sq(0, 2)] = P2_KING;
-  s.board[sq(0, 1)] = P2_MAN;
-  s.board[sq(0, 3)] = P2_MAN;
-
-  s.board[sq(4, 2)] = P1_KING;
-  s.board[sq(4, 1)] = P1_MAN;
-  s.board[sq(4, 3)] = P1_MAN;
+  // s.board[get_pos(0, 2)] = P2_KING;
+  // s.board[get_pos(0, 1)] = P2_MAN;
+  // s.board[get_pos(0, 3)] = P2_MAN;
+  //
+  // s.board[get_pos(4, 2)] = P1_KING;
+  // s.board[get_pos(4, 1)] = P1_MAN;
+  // s.board[get_pos(4, 3)] = P1_MAN;
 
   s.to_move = 0;
   s.ply = 0;
@@ -29,74 +32,77 @@ std::vector<Move> Engine::legal_moves(const State &s) const {
   std::vector<Move> moves;
   const Player side = s.to_move;
 
-  for (int rr = 0; rr < BOARD_N; ++rr) {
-    for (int cc_ = 0; cc_ < BOARD_N; ++cc_) {
-      const Square from = sq(rr, cc_);
-      const std::uint8_t p = s.board[from];
-      if (p == EMPTY)
-        continue;
-
-      const bool is_p1 = (p == P1_MAN || p == P1_KING);
-      const bool is_p2 = (p == P2_MAN || p == P2_KING);
-      if ((side == 0 && !is_p1) || (side == 1 && !is_p2))
-        continue;
-
-      // Men move 1 forward (toward opponent) in 3 directions; Kings
-      // 8-neighborhood.
-      const int dir_fwd = (side == 0) ? -1 : 1;
-
-      if (p == P1_MAN || p == P2_MAN) {
-        const int nr = rr + dir_fwd;
-        for (int dc : {-1, 0, 1}) {
-          const int nc = cc_ + dc;
-          if (!in_bounds(nr, nc))
-            continue;
-          const Square to = sq(nr, nc);
-          const std::uint8_t q = s.board[to];
-          const bool enemy = (side == 0) ? (q == P2_MAN || q == P2_KING)
-                                         : (q == P1_MAN || q == P1_KING);
-          if (q == EMPTY || enemy)
-            moves.push_back(Move{from, to});
-        }
-      } else { // King
-        static constexpr int dirs_k[8][2] = {{1, 0},  {-1, 0}, {0, 1},
-                                             {0, -1}, {1, 1},  {1, -1},
-                                             {-1, 1}, {-1, -1}};
-        for (auto d : dirs_k) {
-          const int nr = rr + d[0];
-          const int nc = cc_ + d[1];
-          if (!in_bounds(nr, nc))
-            continue;
-          const Square to = sq(nr, nc);
-          const std::uint8_t q = s.board[to];
-          const bool friendly = (side == 0) ? (q == P1_MAN || q == P1_KING)
-                                            : (q == P2_MAN || q == P2_KING);
-          if (!friendly)
-            moves.push_back(Move{from, to});
-        }
-      }
-    }
-  }
-
   return moves;
 }
 
-StepResult Engine::step(State &s, const Move &m) const {
-  const std::uint8_t moved = s.board[m.from];
-  s.board[m.to] = moved;
-  s.board[m.from] = EMPTY;
-  s.ply += 1;
+bool Engine::is_legal(const State &s, const Move &m) const {
+  for (const Move &lm : legal_moves(s)) {
+    if (lm.from == m.from && lm.to == m.to && lm.type == m.type && lm.promo_piece == m.promo_piece &&
+        lm.special_code == m.special_code) {
+      return true;
+    }
+  }
+  return false;
+}
 
-  // Terminal if a king is missing or move limit reached.
-  bool p1_king = false, p2_king = false;
-  for (const auto cell : s.board) {
-    if (cell == P1_KING)
-      p1_king = true;
-    if (cell == P2_KING)
-      p2_king = true;
+StepResult Engine::apply_move(State &s, const Move &m) const {
+  const piece::Code moved = s.board[m.from];
+  const piece::Code dest = s.board[m.to];
+  (void)dest;
+
+  // (Optional) fast assert if you didn’t mask actions in RL:
+  // if (!is_legal(s, m)) { return StepResult{/*done=*/true, /*reward_p0=*/-1, "illegal"}; }
+
+  switch (m.type) {
+  case MoveType::Quiet: {
+    s.board[m.to] = piece::set_has_moved(moved);
+    s.board[m.from] = piece::make(piece::EMPTY, piece::P1); // EMPTY (side ignored)
+    break;
+  }
+  case MoveType::Capture: {
+    // Overwrite dest with mover
+    s.board[m.to] = piece::set_has_moved(moved);
+    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    break;
+  }
+  case MoveType::Promote: {
+    // Promotion target is a fully-encoded piece::Code in m.promo_piece.
+    // We typically mark promotions as "has moved".
+    s.board[m.to] = piece::set_has_moved(m.promo_piece);
+    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    break;
+  }
+  case MoveType::CapturePromote: {
+    s.board[m.to] = piece::set_has_moved(m.promo_piece);
+    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    break;
+  }
+  case MoveType::Special: {
+    // Interpret m.special_code, e.g., castling, power-up effects:
+    // - Move rook, apply buffs, remove tiles, etc.
+    // (Provide a small dispatcher or table for special codes.)
+    s.board[m.to] = piece::set_has_moved(moved);
+    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    // then apply extra effects keyed by m.special_code
+    break;
+  }
   }
 
+  s.ply += 1;
+  s.to_move = 1 - s.to_move;
+
+  // Terminal check (kings missing or ply cap)
+  bool p1_king = false, p2_king = false;
+  for (auto cell : s.board) {
+    if (!piece::is_empty(cell) && piece::unit_type(cell) == piece::KING) {
+      if (piece::is_p1(cell))
+        p1_king = true;
+      else
+        p2_king = true;
+    }
+  }
   const bool done = (!p1_king || !p2_king || s.ply >= 200);
+
   int reward_p0 = 0;
   if (done) {
     if (p1_king && !p2_king)
@@ -106,9 +112,7 @@ StepResult Engine::step(State &s, const Move &m) const {
     else
       reward_p0 = 0;
   }
-
-  s.to_move = 1 - s.to_move;
   return StepResult{done, reward_p0, std::string{}};
 }
 
-} // namespace cc
+} // namespace engine
