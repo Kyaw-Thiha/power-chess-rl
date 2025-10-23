@@ -5,11 +5,16 @@ A multi-agent reinforcement learning project (MARL) project that benchmarks diff
 For debugging
 ```bash
 # First-time setup
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
 ln -sf build/compile_commands.json compile_commands.json
 
 # After this, just rebuild normally:
 cmake --build build -j
+```
+
+For testing after building,
+```bash
+ctest --test-dir build -V
 ```
 
 For production build
