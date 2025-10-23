@@ -47,9 +47,12 @@ if (BUILD_TESTING)
   )
   FetchContent_MakeAvailable(Catch2)
 
+  file(GLOB CHESS_TEST_SOURCES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+  )
   add_executable(chess_engine_tests
-    tests/test_engine.cpp
-    tests/test_pawn.cpp
+    ${CHESS_TEST_SOURCES}
   )
   target_include_directories(chess_engine_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
   target_link_libraries(chess_engine_tests PRIVATE chess_engine_core Catch2::Catch2WithMain)

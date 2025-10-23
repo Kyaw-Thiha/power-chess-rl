@@ -20,6 +20,12 @@ static piece::Code p2(piece::UnitType t, bool moved = false) {
   return piece::make(t, piece::P2, moved, piece::POWER_NONE);
 }
 
+// --- added: place kings so the engine does not mark state as terminal
+static void place_default_kings(Engine &E, State &s) {
+  s.board[E.get_pos(BOARD_N - 1, BOARD_N - 1)] = p1(piece::KING, false); // (5,5)
+  s.board[E.get_pos(0, 0)] = p2(piece::KING, false);                     // (0,0)
+}
+
 TEST_CASE("P1 pawn initial: forward 1 and double-step available if path clear", "[pawn][push]") {
   Engine E;
   State s = E.initial_state();
@@ -53,12 +59,13 @@ TEST_CASE("P1 pawn promotion on quiet push", "[pawn][promote][quiet]") {
   s.to_move = 0;
   s.ply = 0;
 
+  place_default_kings(E, s); // <-- added
+
   // Place a single P1 pawn at (1, 3); pushing to (0,3) should promote.
   const int from_row = 1, from_col = 3;
   const Square from = E.get_pos(from_row, from_col);
-  s.board[from] = p1(piece::PAWN, /*moved=*/true); // already moved is fine for promotion test
+  s.board[from] = p1(piece::PAWN, /*moved=*/true); // moved flag doesn't matter for promotion
 
-  // Destination must be empty.
   const Square to = E.get_pos(0, 3);
   s.board[to] = piece::EMPTY;
 
@@ -76,13 +83,12 @@ TEST_CASE("P1 pawn promotion on quiet push", "[pawn][promote][quiet]") {
   REQUIRE(piece::unit_type(promote_move.promo_piece) == piece::QUEEN);
   REQUIRE(piece::is_p1(promote_move.promo_piece));
 
-  // Apply and verify board state.
   auto step = E.apply_move(s, promote_move);
   REQUIRE(piece::unit_type(s.board[to]) == piece::QUEEN);
   REQUIRE(piece::is_p1(s.board[to]));
-  REQUIRE(piece::has_moved(s.board[to])); // promoted piece marked moved
+  REQUIRE(piece::has_moved(s.board[to]));
   REQUIRE(piece::is_empty(s.board[from]));
-  REQUIRE_FALSE(step.done); // not terminal in this setup
+  REQUIRE_FALSE(step.done); // <-- now passes
 }
 
 TEST_CASE("P1 pawn promotion on capture", "[pawn][promote][capture]") {
@@ -91,6 +97,8 @@ TEST_CASE("P1 pawn promotion on capture", "[pawn][promote][capture]") {
   s.board.fill(piece::EMPTY);
   s.to_move = 0;
   s.ply = 0;
+
+  place_default_kings(E, s); // <-- added
 
   // P1 pawn at (1, 3), P2 piece diagonally at (0, 4)
   const Square from = E.get_pos(1, 3);
@@ -113,10 +121,9 @@ TEST_CASE("P1 pawn promotion on capture", "[pawn][promote][capture]") {
   REQUIRE(piece::unit_type(cap_promote_move.promo_piece) == piece::QUEEN);
   REQUIRE(piece::is_p1(cap_promote_move.promo_piece));
 
-  // Apply and verify board state.
   auto step = E.apply_move(s, cap_promote_move);
   REQUIRE(piece::unit_type(s.board[cap_to]) == piece::QUEEN);
   REQUIRE(piece::is_p1(s.board[cap_to]));
   REQUIRE(piece::is_empty(s.board[from]));
-  REQUIRE_FALSE(step.done);
+  REQUIRE_FALSE(step.done); // <-- now passes
 }

@@ -8,7 +8,6 @@
 #include "chess/move.hpp"
 #include "chess/piece.hpp"
 #include "chess/state.hpp"
-#include "units/unit.hpp"
 
 #include <catch2/catch_all.hpp>
 
