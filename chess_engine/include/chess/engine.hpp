@@ -4,7 +4,8 @@
  * @brief Stateless rule engine operating on engine::State.
  */
 
-#include "types.hpp"
+#include "chess/move.hpp"
+#include "chess/state.hpp"
 
 #include <vector>
 
@@ -36,17 +37,18 @@ public:
    */
   StepResult apply_move(State &s, const Move &m) const;
 
+  /** @brief Check if a move is legal under current rules. */
   bool is_legal(const State &s, const Move &m) const;
 
-  /// Helpers for row/col/index conversions.
-  static inline int row(Square sq) {
-    return static_cast<int>(sq) / BOARD_N;
+  // Helpers for index conversions could live here or in a small detail header.
+  static inline int get_pos(int row, int col) {
+    return row * BOARD_N + col;
   }
-  static inline int col(Square sq) {
-    return static_cast<int>(sq) % BOARD_N;
+  static inline int row(int idx) {
+    return idx / BOARD_N;
   }
-  static inline Square get_pos(int r, int c) {
-    return static_cast<Square>(r * BOARD_N + c);
+  static inline int col(int idx) {
+    return idx % BOARD_N;
   }
 };
 

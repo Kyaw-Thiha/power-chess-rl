@@ -1,4 +1,6 @@
-#include "engine.hpp"
+#include "chess/engine.hpp"
+#include "chess/move.hpp"
+#include "chess/state.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

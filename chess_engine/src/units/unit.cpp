@@ -1,5 +1,7 @@
 #pragma once
-#include "types.hpp"
+#include "chess/config.hpp"
+#include "chess/move.hpp"
+#include "chess/state.hpp"
 
 #include <memory>
 #include <vector>

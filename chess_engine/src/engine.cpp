@@ -1,6 +1,7 @@
-#include "engine.hpp"
+#include "chess/engine.hpp"
 
-#include "types.hpp"
+#include "chess/move.hpp"
+#include "chess/state.hpp"
 
 #include <algorithm>
 

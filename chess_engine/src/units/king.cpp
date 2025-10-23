@@ -1,9 +1,11 @@
-#include "engine.hpp"
-#include "types.hpp"
+#include "chess/config.hpp"
+#include "chess/engine.hpp"
+#include "chess/move.hpp"
+#include "chess/piece.hpp"
+#include "chess/state.hpp"
 #include "unit.cpp"
 
 #include <array>
-#include <initializer_list>
 #include <memory>
 #include <vector>
 
