@@ -13,8 +13,6 @@ file(GLOB CHESS_UNIT_SOURCES
   CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/src/units/*.cpp
 )
-
-
 add_library(chess_engine_core
   src/engine.cpp
   ${CHESS_UNIT_SOURCES}
@@ -51,6 +49,10 @@ if (BUILD_TESTING)
     CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
   )
+  # Exclude the embedded-Python test from the regular C++ test target
+  list(REMOVE_ITEM CHESS_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_bindings.cpp
+  )
   add_executable(chess_engine_tests
     ${CHESS_TEST_SOURCES}
   )
@@ -60,4 +62,23 @@ if (BUILD_TESTING)
   target_compile_options(chess_engine_tests PRIVATE -Wall -Wextra -Wpedantic)
 
   add_test(NAME chess_core_tests COMMAND chess_engine_tests)
+
+  # ===== Embedded-Python bindings test (separate runner) =====
+  add_executable(chess_engine_tests_embed
+    tests/test_bindings.cpp
+  )
+  target_include_directories(chess_engine_tests_embed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(chess_engine_tests_embed PRIVATE Catch2::Catch2WithMain pybind11::embed)
+  target_compile_features(chess_engine_tests_embed PRIVATE cxx_std_17)
+  target_compile_options(chess_engine_tests_embed PRIVATE -Wall -Wextra -Wpedantic)
+
+# Tell the embedded test where the compiled Python module lives:
+# (this subdir's binary dir is .../build/chess_engine, which contains _ccore.*)
+  target_compile_definitions(chess_engine_tests_embed PRIVATE
+    PY_MODULE_DIR="${CMAKE_CURRENT_BINARY_DIR}"
+  )
+
+  add_test(NAME chess_bindings_embed_tests COMMAND chess_engine_tests_embed)
+
 endif()
+
