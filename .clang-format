@@ -1,0 +1,6 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 130      
+AllowShortFunctionsOnASingleLine: Empty
+SortIncludes: true
+IncludeBlocks: Regroup
