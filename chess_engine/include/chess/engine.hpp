@@ -40,6 +40,12 @@ public:
   /** @brief Check if a move is legal under current rules. */
   bool is_legal(const State &s, const Move &m) const;
 
+  /** @brief get legal moves of specific unit in from */
+  std::vector<Move> legal_moves_from(const State &s, Square from) const;
+
+  // Optional helper: grouped by source square
+  std::array<std::vector<Move>, BOARD_N * BOARD_N> group_legal_moves_by_from(const State &s) const;
+
   // Helpers for index conversions could live here or in a small detail header.
   static inline int get_pos(int row, int col) {
     return row * BOARD_N + col;

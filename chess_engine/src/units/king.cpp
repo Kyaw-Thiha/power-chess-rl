@@ -19,7 +19,6 @@ public:
     std::vector<Move> moves;
     int row = Engine::row(from);
     int col = Engine::col(from);
-    int dir = (owner_ == 0) ? -1 : +1;
 
     constexpr std::array<Vec2, 8> directions = {{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 

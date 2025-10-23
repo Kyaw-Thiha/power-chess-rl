@@ -9,7 +9,7 @@
 namespace engine {
 
 // Board configuration
-constexpr int BOARD_N = 8; ///< Board dimension (8x8).
+constexpr int BOARD_N = 6; ///< Board dimension (6x6).
 
 // Small POD primitives
 using Square = std::uint8_t; ///< Encodes a 0..(BOARD_N*BOARD_N-1) square index.

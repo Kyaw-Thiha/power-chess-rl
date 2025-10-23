@@ -3,7 +3,7 @@
 #include "chess/move.hpp"
 #include "chess/piece.hpp"
 #include "chess/state.hpp"
-#include "unit.cpp"
+#include "units/unit.hpp"
 
 #include <array>
 #include <memory>
@@ -24,6 +24,9 @@ public:
     // Forward 1, forward 2, diagonal-right, diagonal-left (row is signed via dir)
     constexpr std::array<Vec2, 4> directions = {{{1, 0}, {2, 0}, {1, 1}, {1, -1}}};
 
+    const piece::Code queen_code =
+        piece::make(piece::QUEEN, owner_ == 0 ? piece::P1 : piece::P2, /*hasMoved=*/true, piece::POWER_NONE);
+
     for (Vec2 direction : directions) {
       int new_row = row + dir * direction.row;
       int new_col = col + direction.col;
@@ -38,6 +41,8 @@ public:
 
       Square new_pos = Engine::get_pos(new_row, new_col);
       const piece::Code new_pos_piece = state.board[new_pos];
+
+      bool promotes = (owner_ == 0) ? (new_row == 0) : (new_row == BOARD_N - 1);
 
       // Handling forward movement
       if (direction.col == 0) {
@@ -56,13 +61,24 @@ public:
               continue;
             }
           }
-          moves.push_back(Move{from, new_pos});
+
+          // Handling promotion to queen
+          if (promotes) {
+            moves.push_back(Move{from, new_pos, MoveType::Promote, queen_code});
+          } else {
+            moves.push_back(Move{from, new_pos, MoveType::Quiet});
+          }
         }
       } else {
         // Handling diagonal attacks
         bool is_enemy = (owner_ == 0) ? piece::is_p2(new_pos_piece) : piece::is_p1(new_pos_piece);
         if (is_enemy) {
-          moves.push_back(Move{from, new_pos});
+          // Handling promotion to queen
+          if (promotes) {
+            moves.push_back(Move{from, new_pos, MoveType::CapturePromote, queen_code});
+          } else {
+            moves.push_back(Move{from, new_pos, MoveType::Capture});
+          }
         }
       }
     }
