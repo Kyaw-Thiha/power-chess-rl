@@ -42,7 +42,7 @@ PYBIND11_MODULE(_ccore, m) {
   // ---- PODs
   py::class_<Move>(m, "Move", R"pbdoc(A move from one square to another.)pbdoc")
       .def(py::init<>())
-      .def_readwrite("from", &Move::from, R"pbdoc(Source square index.)pbdoc")
+      .def_readwrite("from_", &Move::from, R"pbdoc(Source square index.)pbdoc")
       .def_readwrite("to", &Move::to, R"pbdoc(Destination square index.)pbdoc")
       .def_readwrite("type", &Move::type, R"pbdoc(MoveType.)pbdoc")
       .def_readwrite("promo_piece", &Move::promo_piece, R"pbdoc(Encoded piece::Code for promotions.)pbdoc")
@@ -68,7 +68,7 @@ PYBIND11_MODULE(_ccore, m) {
 
       .def("legal_moves", &Engine::legal_moves, py::arg("state"), R"pbdoc(Return all legal moves for the side to move.)pbdoc")
 
-      .def("legal_moves_from", &Engine::legal_moves_from, py::arg("state"), py::arg("from"),
+      .def("legal_moves_from", &Engine::legal_moves_from, py::arg("state"), py::arg("from_"),
            R"pbdoc(Return legal moves originating from a specific square.)pbdoc")
 
       .def("group_legal_moves_by_from", &Engine::group_legal_moves_by_from, py::arg("state"),

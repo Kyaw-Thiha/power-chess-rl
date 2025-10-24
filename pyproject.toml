@@ -3,9 +3,9 @@ requires = ["scikit-build-core>=0.8", "pybind11>=2.12", "setuptools>=68", "wheel
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "custom-chess"
+name = "power-chess-rl"
 version = "0.1.0"
-description = "Custom 5x5 chess-like engine with PettingZoo RL, rich/textual UI"
+description = "Custom 6x6 chess-like engine with PettingZoo RL, rich/textual UI"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "You" }]
@@ -21,7 +21,7 @@ dependencies = [
 
 [tool.scikit-build]
 cmake.minimum-version = "3.20"
-wheel.packages = ["custom_chess"]
+wheel.packages = ["power_chess"]
 cmake.build-type = "Release"
 
 [project.optional-dependencies]

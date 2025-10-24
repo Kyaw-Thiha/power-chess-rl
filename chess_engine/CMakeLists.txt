@@ -26,7 +26,11 @@ target_compile_options(chess_engine_core PRIVATE -Wall -Wextra -Wpedantic)
 # ── Python module ──────────────────────────────────────────────────────────────
 pybind11_add_module(_ccore MODULE src/bindings.cpp)
 target_link_libraries(_ccore PRIVATE chess_engine_core)
-install(TARGETS _ccore LIBRARY DESTINATION custom_chess/engine)
+# Put the extension into the wheel's binary package dir under power_chess/engine
+install(TARGETS _ccore
+  LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR}/power_chess/engine
+  RUNTIME DESTINATION ${SKBUILD_PLATLIB_DIR}/power_chess/engine  # Windows .pyd
+)
 
 # ── Tests (delegated) ─────────────────────────────────────────────────────────
 include(CTest)

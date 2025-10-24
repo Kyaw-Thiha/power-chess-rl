@@ -22,3 +22,18 @@ For production build
 cmake -S . -B build_release -DCMAKE_BUILD_TYPE=Release
 ln -sf build_release/compile_commands.json compile_commands.json
 ```
+
+## Building Python Chess Engine Package
+We use `scikit-build` to build the c++ engine as python package based on configs in `pyproject.toml`
+
+Create your virtual environment first.
+```bash
+python -m venv .env
+source .env/bin/activate
+```
+
+Then, build the package.
+```bash
+pip install -e .
+```
+
