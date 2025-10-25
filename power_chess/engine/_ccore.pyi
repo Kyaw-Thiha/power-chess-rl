@@ -20,6 +20,7 @@ class Move:
 
 class StepResult:
     def __init__(self) -> None: ...
+    state: State
     done: bool
     reward_p0: float
     info: str

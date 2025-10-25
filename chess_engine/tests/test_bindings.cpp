@@ -44,7 +44,7 @@ TEST_CASE("pybind11 bindings basic roundtrip", "[bindings][embed]") {
 
   // Check one move has expected fields
   py::object mv0 = moves[0];
-  REQUIRE(mv0.attr("from").cast<int>() >= 0);
+  REQUIRE(mv0.attr("from_").cast<int>() >= 0);
   REQUIRE(mv0.attr("to").cast<int>() >= 0);
   // .type is a MoveType; compare via identity or just check attribute exists
   (void)MT_Quiet; // not strictly needed here
@@ -63,7 +63,7 @@ TEST_CASE("pybind11 bindings basic roundtrip", "[bindings][embed]") {
   REQUIRE(static_cast<int>(grouped.size()) == board_n * board_n);
 
   // legal_moves_from accepts (state, from)
-  int from_sq = mv0.attr("from").cast<int>();
+  int from_sq = mv0.attr("from_").cast<int>();
   py::list from_moves = eng.attr("legal_moves_from")(state, from_sq).cast<py::list>();
   // It is valid to be empty after we’ve moved; just ensure the API returns a list
   REQUIRE(from_moves.ptr() != nullptr);

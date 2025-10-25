@@ -1,6 +1,7 @@
 #include "chess/engine.hpp"
 
 #include "chess/move.hpp"
+#include "chess/piece.hpp"
 #include "chess/state.hpp"
 #include "units/factory.hpp"
 #include "units/unit.hpp"
@@ -78,6 +79,14 @@ std::vector<Move> Engine::legal_moves_from(const State &s, Square from) const {
   return out;
 }
 
+std::array<std::vector<Move>, BOARD_N * BOARD_N> Engine::group_legal_moves_by_from(const State &s) const {
+  std::array<std::vector<Move>, BOARD_N * BOARD_N> buckets;
+  for (int idx = 0; idx < BOARD_N * BOARD_N; ++idx) {
+    buckets[idx] = legal_moves_from(s, idx);
+  }
+  return buckets;
+}
+
 std::vector<Move> Engine::legal_moves(const State &s) const {
   std::vector<Move> moves;
   moves.reserve(64); // small pre-reserve
@@ -101,14 +110,6 @@ std::vector<Move> Engine::legal_moves(const State &s) const {
   return moves;
 }
 
-std::array<std::vector<Move>, BOARD_N * BOARD_N> Engine::group_legal_moves_by_from(const State &s) const {
-  std::array<std::vector<Move>, BOARD_N * BOARD_N> buckets;
-  for (int idx = 0; idx < BOARD_N * BOARD_N; ++idx) {
-    buckets[idx] = legal_moves_from(s, idx);
-  }
-  return buckets;
-}
-
 bool Engine::is_legal(const State &s, const Move &m) const {
   for (const Move &lm : legal_moves(s)) {
     if (lm.from == m.from && lm.to == m.to && lm.type == m.type && lm.promo_piece == m.promo_piece &&
@@ -124,8 +125,10 @@ StepResult Engine::apply_move(State &s, const Move &m) const {
   const piece::Code dest = s.board[m.to];
   (void)dest;
 
-  // (Optional) fast assert if you didn’t mask actions in RL:
-  // if (!is_legal(s, m)) { return StepResult{/*done=*/true, /*reward_p0=*/-1, "illegal"}; }
+  // Checking if the move is legal or not
+  if (!is_legal(s, m)) {
+    return StepResult{s, false, 0, "Illegal"};
+  }
 
   switch (m.type) {
   case MoveType::Quiet: {
@@ -167,7 +170,7 @@ StepResult Engine::apply_move(State &s, const Move &m) const {
 
   // Terminal check (kings missing or ply cap)
   bool p1_king = false, p2_king = false;
-  for (auto cell : s.board) {
+  for (piece::Code cell : s.board) {
     if (!piece::is_empty(cell) && piece::unit_type(cell) == piece::KING) {
       if (piece::is_p1(cell))
         p1_king = true;
@@ -186,7 +189,7 @@ StepResult Engine::apply_move(State &s, const Move &m) const {
     else
       reward_p0 = 0;
   }
-  return StepResult{done, reward_p0, std::string{}};
+  return StepResult{s, done, reward_p0, std::string{}};
 }
 
 } // namespace engine

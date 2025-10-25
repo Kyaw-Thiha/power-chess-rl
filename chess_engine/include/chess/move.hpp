@@ -6,6 +6,7 @@
 
 #include "chess/config.hpp"
 #include "chess/piece.hpp"
+#include "chess/state.hpp"
 
 #include <cstdint>
 #include <string>
@@ -32,6 +33,7 @@ struct Move {
 
 /** @brief Step result after applying a move. */
 struct StepResult {
+  State state;
   bool done = false; ///< True if terminal.
   int reward_p0 = 0; ///< Reward from player-0's perspective in {-1,0,1}.
   std::string info;  ///< Optional info string (debug, reason).
