@@ -8,6 +8,7 @@ from textual.message import Message
 from textual.containers import Vertical
 from textual.app import ComposeResult
 from textual.widgets import Button
+from textual.events import Focus
 from textual import on
 
 
@@ -108,3 +109,11 @@ class NavTabs(Widget):
     def _select_and_emit(self, key: str) -> None:
         self._select(key)
         self.post_message(self.NavSelected(key))
+
+    @on(Focus)
+    def _on_focus(self, event: Focus) -> None:
+        # put keyboard focus on the active button so Enter works
+        try:
+            self.query_one(f"#nav-{self.active_key}", Button).focus()
+        except Exception:
+            pass

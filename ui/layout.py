@@ -4,6 +4,7 @@ from typing import Iterable, Optional
 from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.containers import Horizontal, Vertical
+from textual.widgets import Static
 
 from ui.widgets.nav_tabs import NavTabs, NavItem
 
@@ -11,13 +12,10 @@ from ui.widgets.nav_tabs import NavTabs, NavItem
 class FixedLayout(Widget):
     """
     Lazygit-style fixed layout:
-      - Left:  Main panel with a border title, contains an inner #main where pages mount.
-      - Right: Vertical NavTabs with fixed width.
-      - Bottom: Optional control bar (dock: bottom via CSS).
-
-    Notes:
-      - We keep IDs (#root-row, #main-panel, #main, #nav) so CSS can target reliably.
-      - The control bar (if provided) is yielded *before* StatusBar so StatusBar remains the bottom-most.
+      - Top: TitleBar
+      - Left:  Main panel (contains inner #main where pages mount)
+      - Right: Vertical NavTabs (fixed width)
+      - Bottom: Optional control bar (dock: bottom via CSS)
     """
 
     def __init__(
@@ -33,9 +31,12 @@ class FixedLayout(Widget):
         self._control_bar = control_bar
 
     def compose(self) -> ComposeResult:
+        # Title bar
+        yield Static(" PowerChess RL ", id="titlebar")
+
         # Main row: left main panel + right nav
         yield Horizontal(
-            Vertical(  # Outer bordered panel with title; inner #main is where pages mount
+            Vertical(
                 Vertical(id="main", classes="main-body"),
                 id="main-panel",
             ),
@@ -43,6 +44,5 @@ class FixedLayout(Widget):
             id="root-row",
         )
 
-        # Optional control bar (dock: bottom via CSS). StatusBar should be yielded by App after this.
         if self._control_bar is not None:
             yield self._control_bar

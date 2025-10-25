@@ -4,6 +4,15 @@ from __future__ import annotations
 TOKYONIGHT_CSS = """
 /* ───────────── LAYOUT SCAFFOLD ───────────── */
 
+#titlebar {
+  dock: top;
+  height: 1;
+  border: solid #2e3a59;
+  background: #0f1117;
+  color: #c0caf5;
+  content-align: center middle;
+}
+
 #root-row { height: 1fr; }
 
 #main-panel {
@@ -12,18 +21,14 @@ TOKYONIGHT_CSS = """
   background: #16161e;
   padding: 0;
 }
-#main-panel.-active-tab {
-  border: solid #ff9e64;      /* orange when a tab is active/selected */
-}
+#main-panel.-active-pane { border: solid #ff9e64; }
 
 #main {
   height: 1fr;
   min-width: 0;               /* prevent horizontal overflow */
   overflow: hidden;
   background: #16161e;
-
-  /* Center its content (e.g., the Board) both ways */
-  content-align: center middle;
+  content-align: center middle;  /* center page content (board, etc.) */
 }
 
 /* Right-side navigation rail */
@@ -36,6 +41,7 @@ TOKYONIGHT_CSS = """
   background: #1a1b26;
   color: #c0caf5;
 }
+#nav.-active-pane { border: solid #ff9e64; }
 
 /* Bottom bars */
 ControlBar {
@@ -44,6 +50,7 @@ ControlBar {
   border: solid #2e3a59;
   background: #0f1117;
 }
+ControlBar.-active-pane { border: solid #ff9e64; }
 
 #status {
   dock: bottom;
@@ -54,7 +61,6 @@ ControlBar {
 
 /* ───────────── NAV LOOK & FEEL ───────────── */
 
-/* Style all nav buttons with Tokyonight tone (keeps your .item class) */
 NavTabs Button.item {
   padding: 0 1;
   height: 1;
@@ -82,18 +88,14 @@ NavTabs Button.item.-active {
 /* ───────────── BOARD / PAGES ───────────── */
 
 BoardView {
-  /* Keep DataTable aesthetic, but let it breathe and center nicely */
   background: #16161e;
   color: #c0caf5;
   border: solid #2e3a59;
   margin: 1 2;
 }
 
-/* If you name your board nodes #board, give them a tad of presence */
-#board {
-  /* let it center within #main; DataTable won't stretch columns, but it will be centered */
-  content-align: center middle;
-}
+/* Stronger presence for #board */
+#board { content-align: center middle; }
 
 /* Pickers */
 AgentPicker, ReplayPicker {
@@ -104,6 +106,6 @@ AgentPicker, ReplayPicker {
 }
 
 /* DataTable highlights */
-.data-table--cursor { background: #24283b; color: #e0e7ff; }
+.data-table--cursor  { background: #24283b; color: #e0e7ff; }
 .data-table--highlight { background: #1f2335; color: #9ece6a; }
 """

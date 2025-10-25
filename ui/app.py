@@ -17,6 +17,11 @@ from ui.pages.ai_vs_ai import AIVsAIPage
 from ui.pages.replay import ReplayPage
 from ui.pages.exit_page import ExitPage
 
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from textual.widgets import Static
+
 
 class PowerChessUI(App[None]):
     """Tokyonight-themed terminal UI for the 6x6 PowerChess RL project."""
@@ -28,8 +33,9 @@ class PowerChessUI(App[None]):
         ("ctrl+c", "quit", "Quit"),
         ("tab", "focus_next_pane", "Next Pane"),
         ("shift+tab", "focus_prev_pane", "Prev Pane"),
-        ("left", "focus_nav", ""),  # quick shortcut to nav
+        ("left", "focus_nav", ""),  # quick jump to nav
         ("escape", "focus_nav", ""),  # escape also jumps to nav
+        ("right", "focus_main", ""),  # quick jump back to main
     ]
 
     current_navigation_key: reactive[str] = reactive("hotseat")
@@ -52,7 +58,7 @@ class PowerChessUI(App[None]):
 
     def on_ready(self) -> None:
         self._show_page("hotseat")
-        self.action_focus_main()  # start with main focused
+        self.action_focus_main()  # start in main
 
     @on(NavTabs.NavSelected)
     def handle_nav_selected(self, event: NavTabs.NavSelected) -> None:
@@ -81,59 +87,88 @@ class PowerChessUI(App[None]):
         if page is not None:
             main_container.mount(page)
 
-        # Orange border on active tab
-        main_panel = layout.query_one("#main-panel")
-        main_panel.set_class(True, "-active-tab")
-
-        # Focus the board if present, otherwise keep focus in main
+        # try focusing the board; if absent, focus the main container
         try:
             main_container.query_one("#board").focus()
         except Exception:
             main_container.focus()
 
+        titlebar = cast("Static", self.query_one("#titlebar"))
+        titlebar.update(f" PowerChess RL — {key.upper()} ")
+
         self.query_one(StatusBar).set_message(f"Page: {key}")
 
-    # ── Pane focus actions (Tab cycling & shortcuts) ──────────────────
-    def action_focus_nav(self) -> None:
+    # ── Pane focus management ─────────────────────────────────────────
+
+    def _set_active_pane(self, main: bool = False, nav: bool = False, controls: bool = False) -> None:
+        layout = self.query_one("#fixed-layout", FixedLayout)
+        layout.query_one("#main-panel").set_class(main, "-active-pane")
+        layout.query_one("#nav").set_class(nav, "-active-pane")
         try:
-            self.query_one("#nav").focus()
-            # also focus the active button so arrow keys work immediately
-            active = self.current_navigation_key
-            self.query_one(f"#nav #nav-{active}").focus()
+            self.query_one("ControlBar").set_class(controls, "-active-pane")
         except Exception:
             pass
 
     def action_focus_main(self) -> None:
+        layout = self.query_one("#fixed-layout", FixedLayout)
+        self._set_active_pane(main=True)
+        # focus board if available
         try:
-            self.query_one("#main").focus()
-            # if there's a board, focus it
-            self.query_one("#main #board").focus()
+            layout.query_one("#main #board").focus()
         except Exception:
-            pass
+            layout.query_one("#main").focus()
+
+    def action_focus_nav(self) -> None:
+        layout = self.query_one("#fixed-layout", FixedLayout)
+        self._set_active_pane(nav=True)
+        # put focus on the active button so arrows/enter work immediately
+        active = self.current_navigation_key
+        try:
+            layout.query_one(f"#nav #nav-{active}").focus()
+        except Exception:
+            layout.query_one("#nav").focus()
 
     def action_focus_controls(self) -> None:
+        self._set_active_pane(controls=True)
         try:
             self.query_one("ControlBar").focus()
         except Exception:
             pass
 
+    def _pane_widget(self, selector: str) -> Widget | None:
+        try:
+            return self.query_one(selector)
+        except Exception:
+            return None
+
+    def _pane_contains_focus(self, selector: str) -> bool:
+        root = self._pane_widget(selector)
+        w = self.focused  # type: ignore[attr-defined]
+        # Walk up the parents until None, checking identity
+        while root is not None and w is not None:
+            if w is root:
+                return True
+            # Some stubs don't expose .parent -> use getattr with fallback
+            w = getattr(w, "parent", None)  # type: ignore[assignment]
+        return False
+
     def action_focus_next_pane(self) -> None:
-        # Cycle: main -> nav -> controls -> main
-        anchors = [self.action_focus_main, self.action_focus_nav, self.action_focus_controls]
-        self._cycle_focus(anchors, forward=True)
+        # Cycle: main → nav → controls → main
+        if self._pane_contains_focus("#main"):
+            self.action_focus_nav()
+        elif self._pane_contains_focus("#nav"):
+            self.action_focus_controls()
+        else:
+            self.action_focus_main()
 
     def action_focus_prev_pane(self) -> None:
-        anchors = [self.action_focus_main, self.action_focus_controls, self.action_focus_nav]
-        self._cycle_focus(anchors, forward=True)
-
-    def _cycle_focus(self, anchors, forward: bool) -> None:
-        # Try each anchor in order until one focuses something.
-        for fn in anchors:
-            before = self.screen.focused is not None
-            fn()
-            after = self.screen.focused is not None
-            if after and not before:
-                return
+        # Reverse: controls → nav → main → controls
+        if self._pane_contains_focus("ControlBar"):
+            self.action_focus_nav()
+        elif self._pane_contains_focus("#nav"):
+            self.action_focus_main()
+        else:
+            self.action_focus_controls()
 
     async def action_quit(self) -> None:
         self.exit()

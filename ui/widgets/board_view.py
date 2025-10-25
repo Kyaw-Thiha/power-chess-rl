@@ -9,6 +9,8 @@ from textual.coordinate import Coordinate as DtCoordinate
 
 from power_chess.engine import Engine, State, Move, BOARD_N
 
+FULLWIDTH = str.maketrans("0123456789ABCDEF", "０１２３４５６７８９ＡＢＣＤＥＦ")
+
 
 class BoardView(DataTable):
     """
@@ -79,7 +81,7 @@ class BoardView(DataTable):
         self.clear(columns=True)
         # columns a..f
         for col in range(self.board_size):
-            self.add_column(f"{chr(ord('a') + col)}", width=4)
+            self.add_column(f"{chr(ord('a') + col)}", width=6)
         # rows 0..5 (engine row order; you can flip if desired)
         for row in range(self.board_size):
             self.add_row(*[" . " for _ in range(self.board_size)], key=str(row))
@@ -93,7 +95,9 @@ class BoardView(DataTable):
         col = Engine.col(flat_index)
 
         # Base content
-        txt = Text(" . ") if code == 0 else Text(f"{code:02X}")
+        # txt = Text(" . ") if code == 0 else Text(f"{code:02X}")
+        disp = " . " if code == 0 else f"{code:02X}".translate(FULLWIDTH)
+        txt = Text(f"  {disp}  ")  # pad to breathe a bit
 
         # Highlight legal targets
         if flat_index in self._legal_target_indices:
