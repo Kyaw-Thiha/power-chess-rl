@@ -37,3 +37,4 @@ Then, build the package.
 pip install -e .
 ```
 
+from power_chess.engine import Engine
