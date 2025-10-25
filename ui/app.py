@@ -74,8 +74,8 @@ class PowerChessUI(App[None]):
 
         self.query_one(StatusBar).set_message(f"Page: {key}")
 
-    def action_quit(self) -> None:
-        self.exit(0)
+    async def action_quit(self) -> None:
+        self.exit()
 
 
 if __name__ == "__main__":

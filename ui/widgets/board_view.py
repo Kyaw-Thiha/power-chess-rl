@@ -1,11 +1,13 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, cast
 
+from rich.text import Text
 from textual.widgets import DataTable
 from textual.reactive import reactive
 from textual import on
+from textual.coordinate import Coordinate as DtCoordinate
 
-from power_chess.engine import Engine, State, Move, BOARD_N  # type: ignore[attr-defined]
+from power_chess.engine import Engine, State, Move, BOARD_N
 
 
 class BoardView(DataTable):
@@ -25,16 +27,25 @@ class BoardView(DataTable):
     def __init__(self, engine: Engine, state: State, id: str | None = None) -> None:
         super().__init__(id=id, zebra_stripes=False, cursor_type="cell")
         self.engine = engine
-        self.state = state
+        self.state = state  # reactive is fine to assign like this at runtime
         self.board_size = int(BOARD_N)
         self._selected_from_index = None
         self._legal_target_indices = set()
+
+    # --- Utilities ----------------------------------------------------------
+
+    @staticmethod
+    def _coord(row: int, col: int) -> DtCoordinate:
+        """Typed coordinate helper so Pyright is satisfied."""
+        return cast(DtCoordinate, (row, col))
+
+    # --- Lifecycle ----------------------------------------------------------
 
     def on_mount(self) -> None:
         self._build_grid()
         self._refresh_cells()
 
-    # --- Setup
+    # --- Setup --------------------------------------------------------------
 
     def _build_grid(self) -> None:
         self.clear(columns=True)
@@ -44,25 +55,40 @@ class BoardView(DataTable):
         # rows 0..5 (engine row order; you can flip if desired)
         for row in range(self.board_size):
             self.add_row(*[" . " for _ in range(self.board_size)], key=str(row))
-        self.cursor_coordinate = (self.board_size - 1, 0)  # a1-like start
 
-    # --- Rendering
+        # Start cursor at bottom-left (like a1). Cast to DtCoordinate for typing.
+        self.cursor_coordinate = self._coord(self.board_size - 1, 0)
+
+    # --- Rendering ----------------------------------------------------------
+
+    def _cell_text(self, flat_index: int) -> Text:
+        """Return styled Text for a given flat board index (with highlights)."""
+        code = self.state.board[flat_index]
+        row = Engine.row(flat_index)
+        col = Engine.col(flat_index)
+
+        # Base content
+        txt = Text(" . ") if code == 0 else Text(f"{code:02X}")
+
+        # Highlight legal targets
+        if flat_index in self._legal_target_indices:
+            # A subtle tokyonight-like highlight: bold + background tint
+            txt.stylize("bold on #2d3f76")  # adjust to taste
+
+        # Highlight selected origin (optional but helpful)
+        if self._selected_from_index is not None and flat_index == self._selected_from_index:
+            txt.stylize("bold reverse")  # invert as a cursor-like mark
+
+        return txt
 
     def _refresh_cells(self) -> None:
-        for flat_index, code in enumerate(self.state.board):
+        # Repaint every cell with (possibly) styled Text
+        for flat_index, _code in enumerate(self.state.board):
             row = Engine.row(flat_index)
             col = Engine.col(flat_index)
-            text = " . " if code == 0 else f"{code:02X}"
-            self.update_cell_at((row, col), text)
+            self.update_cell_at(self._coord(row, col), self._cell_text(flat_index))
 
-        # highlights
-        self.remove_class_from_cells("data-table--highlight")
-        for target_index in self._legal_target_indices:
-            row = Engine.row(target_index)
-            col = Engine.col(target_index)
-            self.add_class_to_cell((row, col), "data-table--highlight")
-
-    # --- Interactions
+    # --- Interactions -------------------------------------------------------
 
     @on(DataTable.CellSelected)
     def handle_cell_selected(self, event: DataTable.CellSelected) -> None:
@@ -77,7 +103,7 @@ class BoardView(DataTable):
                 move = self._find_move(self._selected_from_index, flat_index)
                 if move is not None:
                     step_result = self.engine.apply_move(self.state, move)
-                    self.state = step_result.state  # use returned state (no manual copy)
+                    self.state = step_result.state  # take returned state
             # clear selection either way
             self._selected_from_index = None
             self._legal_target_indices = set()
@@ -95,7 +121,7 @@ class BoardView(DataTable):
                 return move
         return None
 
-    # --- External API
+    # --- External API -------------------------------------------------------
 
     def set_state(self, new_state: State) -> None:
         """Replace board state and repaint."""

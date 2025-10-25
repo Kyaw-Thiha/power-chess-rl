@@ -7,7 +7,7 @@ from textual.screen import Screen
 from textual.containers import Vertical
 from textual import on
 
-from power_chess.engine import Engine, State, Move  # type: ignore[attr-defined]
+from power_chess.engine import Engine, State, Move
 from models.types import ReplayEntry
 from widgets.board_view import BoardView
 from widgets.control_bar import ControlBar

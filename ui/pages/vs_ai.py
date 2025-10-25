@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.containers import Vertical
 from textual import on
 
-from power_chess.engine import Engine, State, Move  # type: ignore[attr-defined]
+from power_chess.engine import Engine, State
 from models.types import AgentConfig
 from services.ai_policy import RandomPolicy
 from widgets.board_view import BoardView

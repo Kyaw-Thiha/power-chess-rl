@@ -4,7 +4,7 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Vertical
 
-from power_chess.engine import Engine, State  # type: ignore[attr-defined]
+from power_chess.engine import Engine, State
 from widgets.board_view import BoardView
 from widgets.control_bar import ControlBar
 
