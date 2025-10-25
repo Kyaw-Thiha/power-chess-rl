@@ -6,9 +6,9 @@ from textual.widget import Widget
 from textual.reactive import reactive
 from textual.message import Message
 from textual.containers import Vertical
-from textual.widgets import Static
 from textual.app import ComposeResult
-from textual.events import Click
+from textual.widgets import Button  # ← use Button
+from textual import on
 
 
 @dataclass(slots=True)
@@ -43,36 +43,29 @@ class NavTabs(Widget):
             for it in self.items:
                 is_active = it.key == self.active_key
                 prefix = "▶" if is_active else "  "
-                # Use separate class names instead of a spaced string with hyphen
                 classes = "item"
                 if is_active:
                     classes += " -active"
-                yield Static(f"{prefix} {it.label}", classes=classes, id=f"nav-{it.key}")
-
-    def on_mount(self) -> None:
-        for it in self.items:
-            node = self.query_one(f"#nav-{it.key}", Static)
-            node.can_focus = True
+                # Buttons give us a reliable Pressed message with .button.id
+                yield Button(f"{prefix} {it.label}", id=f"nav-{it.key}", classes=classes)
 
     def _refresh_visuals(self) -> None:
-        """Update prefix and active class without remounting."""
+        """Update label + active class on buttons without remounting."""
         for it in self.items:
-            node = self.query_one(f"#nav-{it.key}", Static)
+            btn = self.query_one(f"#nav-{it.key}", Button)
             is_active = it.key == self.active_key
             prefix = "▶" if is_active else "  "
-            node.update(f"{prefix} {it.label}")
-            node.set_class(is_active, "-active")  # toggle the active class
+            btn.label = f"{prefix} {it.label}"
+            btn.set_class(is_active, "-active")
 
-    def on_click(self, event: Click) -> None:
-        ctrl = event.control
-        target_id = getattr(ctrl, "id", None)
-        if not target_id or not target_id.startswith("nav-"):
+    @on(Button.Pressed)
+    def _on_pressed(self, event: Button.Pressed) -> None:
+        btn_id = event.button.id or ""
+        if not btn_id.startswith("nav-"):
             return
-
-        key = target_id.replace("nav-", "", 1)
+        key = btn_id[4:]
         if key == self.active_key:
             return
-
         self.active_key = key
         self._refresh_visuals()
         self.post_message(self.NavSelected(key))
