@@ -4,6 +4,7 @@ from textual.app import App, ComposeResult
 from textual.reactive import reactive
 from textual import on
 from textual.widget import Widget
+from textual.events import Focus
 
 from ui.theme import TOKYONIGHT_CSS
 from ui.layout import FixedLayout
@@ -169,6 +170,19 @@ class PowerChessUI(App[None]):
             self.action_focus_main()
         else:
             self.action_focus_controls()
+
+    @on(Focus)
+    def _on_any_focus(self, _event: Focus) -> None:
+        """Whenever focus changes, set the active pane class correctly."""
+        if self._pane_contains_focus("#main"):
+            self._set_active_pane(main=True)
+        elif self._pane_contains_focus("#nav"):
+            self._set_active_pane(nav=True)
+        elif self._pane_contains_focus("ControlBar"):
+            self._set_active_pane(controls=True)
+        else:
+            # default to main if nothing matches
+            self._set_active_pane(main=True)
 
     async def action_quit(self) -> None:
         self.exit()

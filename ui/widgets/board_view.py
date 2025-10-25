@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, cast
+from typing import Optional, Callable, cast
 
 from rich.text import Text
 from textual.widgets import DataTable
@@ -9,26 +9,76 @@ from textual.coordinate import Coordinate as DtCoordinate
 
 from power_chess.engine import Engine, State, Move, BOARD_N
 
-FULLWIDTH = str.maketrans("0123456789ABCDEF", "０１２３４５６７８９ＡＢＣＤＥＦ")
+# Type for a piece-decoder: given an engine code -> display string (ASCII or Unicode)
+PieceTextFn = Callable[[int], str]
+
+
+KIND_MASK = 0b0000_0111  # bits 0..2
+MOVED_MASK = 0b0000_1000  # bit 3 (unused for glyph)
+SIDE_MASK = 0b0001_0000  # bit 4 (0=P1, 1=P2)
+POWER_MASK = 0b1110_0000  # bits 5..7 (unused for glyph)
+
+# kind values (match your UnitType)
+K_EMPTY, K_PAWN, K_KNIGHT, K_BISHOP, K_ROOK, K_QUEEN, K_KING = 0, 1, 2, 3, 4, 5, 6
+
+
+def infer_unicode_piece(code: int) -> str:
+    """
+    Decode your piece::Code per piece.hpp:
+      - kind  = code & KIND_MASK (0 empty; 1..6 = P,N,B,R,Q,K)
+      - side  = (code & SIDE_MASK) == 0  -> P1, else P2
+      - moved/power bits are ignored for glyphs
+    P1 is rendered as white; P2 as black.
+    """
+    kind = code & KIND_MASK
+    if kind == K_EMPTY:
+        return "·"
+
+    is_p2 = (code & SIDE_MASK) != 0  # bit 4 set => P2
+
+    WHITE = {
+        K_PAWN: "♙",
+        K_KNIGHT: "♘",
+        K_BISHOP: "♗",
+        K_ROOK: "♖",
+        K_QUEEN: "♕",
+        K_KING: "♔",
+    }
+    BLACK = {
+        K_PAWN: "♟",
+        K_KNIGHT: "♞",
+        K_BISHOP: "♝",
+        K_ROOK: "♜",
+        K_QUEEN: "♛",
+        K_KING: "♚",
+    }
+
+    table = BLACK if is_p2 else WHITE
+    return table.get(kind, "·")
 
 
 class BoardView(DataTable):
     """
-    6x6 board view using Textual's DataTable.
-    - Mouse:
-        * Click once: select origin; legal targets highlight.
-        * Click target: performs the move via Engine.apply_move.
-    - Keyboard:
-        * Arrow keys: move a logical cursor on the grid.
-        * Enter/Space: select/apply just like clicking the current cell.
+    6x6 board using Textual's DataTable.
+
+    Mouse:
+      - click once: select origin; legal targets highlight
+      - click target: applies move
+
+    Keyboard:
+      - arrows / jklh: move a logical cursor
+      - enter/space: select/apply at cursor
     """
 
-    # Keyboard bindings for grid navigation & activation
     BINDINGS = [
         ("up", "cursor_up", ""),
         ("down", "cursor_down", ""),
         ("left", "cursor_left", ""),
         ("right", "cursor_right", ""),
+        ("k", "cursor_up", ""),
+        ("j", "cursor_down", ""),
+        ("h", "cursor_left", ""),
+        ("l", "cursor_right", ""),
         ("enter", "cursor_select", ""),
         ("space", "cursor_select", ""),
     ]
@@ -37,28 +87,41 @@ class BoardView(DataTable):
     state: reactive[State]
     board_size: int
 
+    # Public hook: set a function that returns the display text for a piece code.
+    # Defaults to Unicode chess glyphs inferred from typical code scheme.
+    piece_text_fn: PieceTextFn
+
     _selected_from_index: Optional[int]
     _legal_target_indices: set[int]
 
-    # logical cursor location (row/col in DataTable terms)
     _cur_row: int
     _cur_col: int
 
-    def __init__(self, engine: Engine, state: State, id: str | None = None) -> None:
+    def __init__(
+        self,
+        engine: Engine,
+        state: State,
+        id: str | None = None,
+        piece_text_fn: PieceTextFn | None = None,
+    ) -> None:
         super().__init__(id=id, zebra_stripes=False, cursor_type="cell")
         self.engine = engine
-        self.state = state  # reactive is fine to assign like this at runtime
+        self.state = state
         self.board_size = int(BOARD_N)
         self._selected_from_index = None
         self._legal_target_indices = set()
-        self._cur_row = self.board_size - 1  # start like a1 (bottom-left)
+        self._cur_row = self.board_size - 1
         self._cur_col = 0
+
+        # Default to Unicode glyph inference; callers can override with a custom mapper.
+        self.piece_text_fn = piece_text_fn or infer_unicode_piece
+
+        self.can_focus = True
 
     # --- Utilities ----------------------------------------------------------
 
     @staticmethod
     def _coord(row: int, col: int) -> DtCoordinate:
-        """Typed coordinate helper so Pyright is satisfied."""
         return cast(DtCoordinate, (row, col))
 
     def _clamp_rc(self, r: int, c: int) -> tuple[int, int]:
@@ -70,75 +133,61 @@ class BoardView(DataTable):
 
     def on_mount(self) -> None:
         self._build_grid()
-        # put the visual cursor where our logical cursor starts
         self.cursor_coordinate = self._coord(self._cur_row, self._cur_col)
-        self.can_focus = True
         self._refresh_cells()
 
     # --- Setup --------------------------------------------------------------
 
     def _build_grid(self) -> None:
         self.clear(columns=True)
-        # columns a..f
         for col in range(self.board_size):
-            self.add_column(f"{chr(ord('a') + col)}", width=6)
-        # rows 0..5 (engine row order; you can flip if desired)
+            self.add_column(f"{chr(ord('a') + col)}", width=6)  # wider cells for glyphs
         for row in range(self.board_size):
-            self.add_row(*[" . " for _ in range(self.board_size)], key=str(row))
+            self.add_row(*["     " for _ in range(self.board_size)], key=str(row))
 
     # --- Rendering ----------------------------------------------------------
 
     def _cell_text(self, flat_index: int) -> Text:
-        """Return styled Text for a given flat board index (with highlights)."""
         code = self.state.board[flat_index]
-        row = Engine.row(flat_index)
-        col = Engine.col(flat_index)
+        # Render piece
+        disp = self.piece_text_fn(code)
 
-        # Base content
-        # txt = Text(" . ") if code == 0 else Text(f"{code:02X}")
-        disp = " . " if code == 0 else f"{code:02X}".translate(FULLWIDTH)
-        txt = Text(f"  {disp}  ")  # pad to breathe a bit
+        # Pad so cells feel larger and centered
+        txt = Text(f"  {disp}  ")
 
-        # Highlight legal targets
+        # Highlights
         if flat_index in self._legal_target_indices:
-            # Tokyonight-ish hint
             txt.stylize("bold on #2d3f76")
-
-        # Highlight selected origin (optional but helpful)
         if self._selected_from_index is not None and flat_index == self._selected_from_index:
             txt.stylize("bold reverse")
 
         return txt
 
     def _refresh_cells(self) -> None:
-        # Repaint every cell with (possibly) styled Text
         for flat_index, _code in enumerate(self.state.board):
             row = Engine.row(flat_index)
             col = Engine.col(flat_index)
             self.update_cell_at(self._coord(row, col), self._cell_text(flat_index))
 
-    # --- Interactions: Mouse ------------------------------------------------
+    # --- Interactions: Mouse/Keyboard unified ------------------------------
 
     @on(DataTable.CellSelected)
     def handle_cell_selected(self, event: DataTable.CellSelected) -> None:
-        """Select origin square or apply a legal move (mouse/keyboard selection)."""
         row, col = event.coordinate
-        self._cur_row, self._cur_col = self._clamp_rc(row, col)  # keep cursor in sync
+        self._cur_row, self._cur_col = self._clamp_rc(row, col)
         self._activate_at_rc(self._cur_row, self._cur_col)
 
-    # --- Interactions: Keyboard --------------------------------------------
-
     def action_cursor_up(self) -> None:
-        self._move_cursor(d_row=-1, d_col=0)
+        self._move_cursor(-1, 0)
 
     def action_cursor_down(self) -> None:
-        self._move_cursor(d_row=+1, d_col=0)
+        self._move_cursor(+1, 0)
 
     def action_cursor_left(self) -> None:
-        self._move_cursor(d_row=0, d_col=-1)
+        self._move_cursor(0, -1)
 
     def action_cursor_right(self) -> None:
-        self._move_cursor(d_row=0, d_col=+1)
+        self._move_cursor(0, +1)
 
     def _move_cursor(self, d_row: int, d_col: int) -> None:
         r, c = self._clamp_rc(self._cur_row + d_row, self._cur_col + d_col)
@@ -146,26 +195,18 @@ class BoardView(DataTable):
         self.cursor_coordinate = self._coord(r, c)
 
     def action_cursor_select(self) -> None:
-        """Enter/Space: perform the same behavior as selecting the current cell."""
         self._activate_at_rc(self._cur_row, self._cur_col)
 
-    # --- Shared activation logic -------------------------------------------
-
     def _activate_at_rc(self, row: int, col: int) -> None:
-        """Core select/apply behavior used by both mouse and keyboard."""
         flat_index = Engine.get_pos(row, col)
-
         if self._selected_from_index is None:
             self._select_origin(flat_index)
             return
-
         if flat_index in self._legal_target_indices:
             move = self._find_move(self._selected_from_index, flat_index)
             if move is not None:
                 step_result = self.engine.apply_move(self.state, move)
-                self.state = step_result.state  # take returned state
-
-        # clear selection either way and repaint
+                self.state = step_result.state
         self._selected_from_index = None
         self._legal_target_indices = set()
         self._refresh_cells()
@@ -187,6 +228,5 @@ class BoardView(DataTable):
     # --- External API -------------------------------------------------------
 
     def set_state(self, new_state: State) -> None:
-        """Replace board state and repaint."""
         self.state = new_state
         self._refresh_cells()

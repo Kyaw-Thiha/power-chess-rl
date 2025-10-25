@@ -27,7 +27,11 @@ class NavTabs(Widget):
         ("up", "nav_up", "Up"),
         ("down", "nav_down", "Down"),
         ("enter", "nav_activate", "Open"),
-        ("right", "nav_activate", ""),  # let → also open
+        ("right", "nav_activate", ""),
+        ("k", "nav_up", ""),
+        ("j", "nav_down", ""),
+        ("l", "nav_activate", ""),
+        ("h", "nav_leave", ""),  # go back to main
     ]
 
     items: reactive[list[NavItem]] = reactive(list)
@@ -85,7 +89,23 @@ class NavTabs(Widget):
             return
         self._select(self.items[(idx + 1) % len(self.items)].key)
 
+    def action_nav_leave(self) -> None:
+        # Ask the app to focus main pane (safe even if not present)
+        try:
+            self.app.action_focus_main()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
     def action_nav_activate(self) -> None:
+        # If a button is focused, honor it; otherwise fallback to active_key
+        try:
+            focused = self.screen.focused  # type: ignore[attr-defined]
+            if isinstance(focused, Button) and focused.id and focused.id.startswith("nav-"):
+                key = focused.id[4:]
+                self._select_and_emit(key)
+                return
+        except Exception:
+            pass
         self._select_and_emit(self.active_key)
 
     # Helpers
