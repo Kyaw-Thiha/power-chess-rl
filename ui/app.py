@@ -3,7 +3,6 @@ from __future__ import annotations
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
-from textual.screen import Screen
 from textual import on
 
 from ui.theme import TOKYONIGHT_CSS
@@ -21,13 +20,17 @@ class PowerChessUI(App[None]):
 
     CSS = TOKYONIGHT_CSS
     TITLE = "PowerChess RL"
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("ctrl+c", "quit", "Quit"),
+    ]
 
     current_navigation_key: reactive[str] = reactive("hotseat")
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
             Vertical(
-                id="main",  # where pages mount/unmount
+                id="main",  # (kept; unused when using Screens)
             ),
             NavTabs(
                 items=[
@@ -45,7 +48,16 @@ class PowerChessUI(App[None]):
         yield StatusBar(id="status")
 
     def on_mount(self) -> None:
-        self._show_page("hotseat")
+        self.install_screen(HotseatPage(), name="hotseat")
+        self.install_screen(VsAIPage(), name="vsai")
+        self.install_screen(AIVsAIPage(), name="aivai")
+        self.install_screen(ReplayPage(), name="replay")
+        self.install_screen(ExitPage(on_confirm=lambda: self.exit()), name="exit")
+
+        # FIRST show should be push_screen, not switch_screen (avoids pop-from-empty default stack)
+        self.current_navigation_key = "hotseat"
+        self.push_screen("hotseat")
+        self.query_one(StatusBar).set_message("Page: hotseat")
 
     @on(NavTabs.NavSelected)
     def handle_nav_selected(self, event: NavTabs.NavSelected) -> None:
@@ -54,24 +66,8 @@ class PowerChessUI(App[None]):
     def _show_page(self, key: str) -> None:
         """Swap the central page based on `key`."""
         self.current_navigation_key = key
-        main_container = self.query_one("#main", Vertical)
-        main_container.remove_children()
-
-        page: Screen | None = None
-        if key == "hotseat":
-            page = HotseatPage()
-        elif key == "vsai":
-            page = VsAIPage()
-        elif key == "aivai":
-            page = AIVsAIPage()
-        elif key == "replay":
-            page = ReplayPage()
-        elif key == "exit":
-            page = ExitPage(on_confirm=self.exit)
-
-        if page is not None:
-            main_container.mount(page)
-
+        # For subsequent navigations, switch between installed screens
+        self.switch_screen(key)
         self.query_one(StatusBar).set_message(f"Page: {key}")
 
     async def action_quit(self) -> None:

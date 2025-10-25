@@ -8,6 +8,7 @@ from textual.message import Message
 from textual.containers import Vertical
 from textual.widgets import Static
 from textual.app import ComposeResult
+from textual.events import Click
 
 
 @dataclass(slots=True)
@@ -25,6 +26,8 @@ class NavTabs(Widget):
 
     class NavSelected(Message):
         """Emitted when a nav item is selected."""
+
+        bubble = True
 
         def __init__(self, key: str) -> None:
             self.key = key
@@ -60,13 +63,16 @@ class NavTabs(Widget):
             node.update(f"{prefix} {it.label}")
             node.set_class(is_active, "-active")  # toggle the active class
 
-    def on_click(self, event) -> None:  # type: ignore[override]
-        target_id = getattr(event.target, "id", None)
+    def on_click(self, event: Click) -> None:
+        ctrl = event.control
+        target_id = getattr(ctrl, "id", None)
         if not target_id or not target_id.startswith("nav-"):
             return
+
         key = target_id.replace("nav-", "", 1)
         if key == self.active_key:
             return
+
         self.active_key = key
         self._refresh_visuals()
         self.post_message(self.NavSelected(key))
