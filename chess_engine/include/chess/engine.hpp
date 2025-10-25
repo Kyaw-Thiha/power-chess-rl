@@ -46,6 +46,28 @@ public:
   // Optional helper: grouped by source square
   std::array<std::vector<Move>, BOARD_N * BOARD_N> group_legal_moves_by_from(const State &s) const;
 
+  /** @Helper to deduce the move type based on from-to Move */
+  static inline MoveType deduce_move_type(const State &s, const Move &m) {
+    const bool is_capture = !piece::is_empty(s.board[m.to]) && ((piece::is_p1(s.board[m.from]) && piece::is_p2(s.board[m.to])) ||
+                                                                (piece::is_p2(s.board[m.from]) && piece::is_p1(s.board[m.to])));
+
+    // Promotion if mover is a pawn that lands on last rank
+    const piece::Code mover = s.board[m.from];
+    const bool is_pawn = piece::unit_type(mover) == piece::PAWN;
+    const int to_row = Engine::row(m.to);
+    const bool promotes = is_pawn ? (piece::is_p1(mover) ? (to_row == 0) : (to_row == BOARD_N - 1)) : false;
+
+    if (m.special_code != 0)
+      return MoveType::Special;
+    if (promotes && is_capture)
+      return MoveType::CapturePromote;
+    if (promotes && !is_capture)
+      return MoveType::Promote;
+    if (is_capture)
+      return MoveType::Capture;
+    return MoveType::Quiet;
+  }
+
   // Helpers for index conversions could live here or in a small detail header.
   static inline int get_pos(int row, int col) {
     return row * BOARD_N + col;

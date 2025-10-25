@@ -130,37 +130,37 @@ StepResult Engine::apply_move(State &s, const Move &m) const {
     return StepResult{s, false, 0, "Illegal"};
   }
 
-  switch (m.type) {
+  Move move = m;
+  move.type = Engine::deduce_move_type(s, m);
+
+  switch (move.type) {
   case MoveType::Quiet: {
-    s.board[m.to] = piece::set_has_moved(moved);
-    s.board[m.from] = piece::make(piece::EMPTY, piece::P1); // EMPTY (side ignored)
+    s.board[move.to] = piece::set_has_moved(moved);
+    s.board[move.from] = piece::EMPTY; // or piece::make(piece::EMPTY, piece::P1)
     break;
   }
   case MoveType::Capture: {
-    // Overwrite dest with mover
-    s.board[m.to] = piece::set_has_moved(moved);
-    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    s.board[move.to] = piece::set_has_moved(moved); // overwrite enemy
+    s.board[move.from] = piece::EMPTY;
     break;
   }
   case MoveType::Promote: {
-    // Promotion target is a fully-encoded piece::Code in m.promo_piece.
-    // We typically mark promotions as "has moved".
-    s.board[m.to] = piece::set_has_moved(m.promo_piece);
-    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    // Use the promo piece provided by the generator
+    s.board[move.to] = piece::set_has_moved(move.promo_piece);
+    s.board[move.from] = piece::EMPTY;
     break;
   }
   case MoveType::CapturePromote: {
-    s.board[m.to] = piece::set_has_moved(m.promo_piece);
-    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
+    s.board[move.to] = piece::set_has_moved(move.promo_piece); // overwrite enemy
+    s.board[move.from] = piece::EMPTY;
     break;
   }
   case MoveType::Special: {
-    // Interpret m.special_code, e.g., castling, power-up effects:
-    // - Move rook, apply buffs, remove tiles, etc.
-    // (Provide a small dispatcher or table for special codes.)
-    s.board[m.to] = piece::set_has_moved(moved);
-    s.board[m.from] = piece::make(piece::EMPTY, piece::P1);
-    // then apply extra effects keyed by m.special_code
+    // Place the mover first (common baseline)
+    s.board[move.to] = piece::set_has_moved(moved);
+    s.board[move.from] = piece::EMPTY;
+    // Then dispatch special effects keyed by move.special_code
+    // (castle rook move / powers / etc.)
     break;
   }
   }
