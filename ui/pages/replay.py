@@ -3,9 +3,9 @@ from typing import List
 
 import json
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Vertical
 from textual import on
+from textual.widget import Widget
 
 from power_chess.engine import Engine, State, Move
 from ui.models.types import ReplayEntry
@@ -14,7 +14,7 @@ from ui.widgets.control_bar import ControlBar
 from ui.widgets.replay_picker import ReplayPicker
 
 
-class ReplayPage(Screen):
+class ReplayPage(Widget):
     """Replay past games from a JSONL where each line is a move dict."""
 
     def __init__(self) -> None:

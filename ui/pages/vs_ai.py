@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Optional
 
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Vertical
 from textual import on
+from textual.widget import Widget
 
 from power_chess.engine import Engine, State
 from ui.models.types import AgentConfig
@@ -14,7 +14,7 @@ from ui.widgets.agent_picker import AgentPicker
 from ui.widgets.control_bar import ControlBar
 
 
-class VsAIPage(Screen):
+class VsAIPage(Widget):
     """Human vs AI; by default side 1 (player-1) is AI."""
 
     def __init__(self) -> None:

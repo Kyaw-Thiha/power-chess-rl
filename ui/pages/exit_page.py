@@ -2,13 +2,13 @@ from __future__ import annotations
 from typing import Callable
 
 from textual.app import ComposeResult
-from textual.screen import Screen
+from textual.widget import Widget
 from textual.widgets import Static, Button
 from textual.containers import Vertical
 from textual import on
 
 
-class ExitPage(Screen):
+class ExitPage(Widget):
     """Exit confirmation page."""
 
     def __init__(self, on_confirm: Callable[[], None]) -> None:

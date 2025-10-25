@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Vertical
+from textual.widget import Widget
 
 from power_chess.engine import Engine, State
 from ui.widgets.board_view import BoardView
 from ui.widgets.control_bar import ControlBar
 
 
-class HotseatPage(Screen):
+class HotseatPage(Widget):
     """Two-human hotseat play with interactive board."""
 
     def __init__(self) -> None:
