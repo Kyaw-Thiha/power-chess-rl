@@ -8,10 +8,10 @@ from textual.containers import Vertical
 from textual import on
 
 from power_chess.engine import Engine, State, Move
-from models.types import ReplayEntry
-from widgets.board_view import BoardView
-from widgets.control_bar import ControlBar
-from widgets.replay_picker import ReplayPicker
+from ui.models.types import ReplayEntry
+from ui.widgets.board_view import BoardView
+from ui.widgets.control_bar import ControlBar
+from ui.widgets.replay_picker import ReplayPicker
 
 
 class ReplayPage(Screen):

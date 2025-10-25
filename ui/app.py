@@ -6,14 +6,14 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual import on
 
-from theme import TOKYONIGHT_CSS
-from widgets.nav_tabs import NavTabs, NavItem
-from widgets.status_bar import StatusBar
-from pages.hotseat import HotseatPage
-from pages.vs_ai import VsAIPage
-from pages.ai_vs_ai import AIVsAIPage
-from pages.replay import ReplayPage
-from pages.exit_page import ExitPage
+from ui.theme import TOKYONIGHT_CSS
+from ui.widgets.nav_tabs import NavTabs, NavItem
+from ui.widgets.status_bar import StatusBar
+from ui.pages.hotseat import HotseatPage
+from ui.pages.vs_ai import VsAIPage
+from ui.pages.ai_vs_ai import AIVsAIPage
+from ui.pages.replay import ReplayPage
+from ui.pages.exit_page import ExitPage
 
 
 class PowerChessUI(App[None]):

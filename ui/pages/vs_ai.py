@@ -7,11 +7,11 @@ from textual.containers import Vertical
 from textual import on
 
 from power_chess.engine import Engine, State
-from models.types import AgentConfig
-from services.ai_policy import RandomPolicy
-from widgets.board_view import BoardView
-from widgets.agent_picker import AgentPicker
-from widgets.control_bar import ControlBar
+from ui.models.types import AgentConfig
+from ui.services.ai_policy import RandomPolicy
+from ui.widgets.board_view import BoardView
+from ui.widgets.agent_picker import AgentPicker
+from ui.widgets.control_bar import ControlBar
 
 
 class VsAIPage(Screen):

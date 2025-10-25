@@ -5,7 +5,7 @@ from textual.widgets import Label, Input, Button
 from textual.message import Message
 from textual import on
 
-from models.types import ReplayEntry
+from ui.models.types import ReplayEntry
 
 
 class ReplayPicker(Widget):

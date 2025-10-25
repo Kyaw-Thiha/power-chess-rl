@@ -7,7 +7,7 @@ from textual.widgets import Label, Input, Button, Select
 from textual.message import Message
 from textual import on
 
-from models.types import AgentConfig
+from ui.models.types import AgentConfig
 
 
 class AgentPicker(Widget):

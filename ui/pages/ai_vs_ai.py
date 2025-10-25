@@ -6,9 +6,10 @@ from textual.containers import Vertical
 from textual import on
 
 from power_chess.engine import Engine, State
-from services.ai_policy import RandomPolicy
-from widgets.board_view import BoardView
-from widgets.control_bar import ControlBar
+
+from ui.services.ai_policy import RandomPolicy
+from ui.widgets.board_view import BoardView
+from ui.widgets.control_bar import ControlBar
 
 
 class AIVsAIPage(Screen):
