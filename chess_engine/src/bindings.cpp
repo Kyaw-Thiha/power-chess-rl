@@ -50,6 +50,7 @@ PYBIND11_MODULE(_ccore, m) {
 
   py::class_<StepResult>(m, "StepResult", R"pbdoc(Result of applying a move.)pbdoc")
       .def(py::init<>())
+      .def_readwrite("state", &StepResult::state, R"pbdoc(State of board after the step)pbdoc")
       .def_readwrite("done", &StepResult::done, R"pbdoc(True if terminal.)pbdoc")
       .def_readwrite("reward_p0", &StepResult::reward_p0, R"pbdoc(Reward from player-0's perspective.)pbdoc")
       .def_readwrite("info", &StepResult::info, R"pbdoc(Optional info/debug string.)pbdoc");
