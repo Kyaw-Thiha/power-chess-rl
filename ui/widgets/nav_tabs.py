@@ -7,7 +7,7 @@ from textual.reactive import reactive
 from textual.message import Message
 from textual.containers import Vertical
 from textual.app import ComposeResult
-from textual.widgets import Button  # ← use Button
+from textual.widgets import Button
 from textual import on
 
 
@@ -21,12 +21,18 @@ class NavItem:
 class NavTabs(Widget):
     """Right-docked vertical navigation with lazygit vibe."""
 
+    # Keyboard bindings for arrow nav + enter
+    BINDINGS = [
+        ("up", "nav_up", "Up"),
+        ("down", "nav_down", "Down"),
+        ("enter", "nav_activate", "Open"),
+        ("right", "nav_activate", ""),  # let → also open
+    ]
+
     items: reactive[list[NavItem]] = reactive(list)
     active_key: reactive[str] = reactive("hotseat")
 
     class NavSelected(Message):
-        """Emitted when a nav item is selected."""
-
         bubble = True
 
         def __init__(self, key: str) -> None:
@@ -46,11 +52,9 @@ class NavTabs(Widget):
                 classes = "item"
                 if is_active:
                     classes += " -active"
-                # Buttons give us a reliable Pressed message with .button.id
                 yield Button(f"{prefix} {it.label}", id=f"nav-{it.key}", classes=classes)
 
     def _refresh_visuals(self) -> None:
-        """Update label + active class on buttons without remounting."""
         for it in self.items:
             btn = self.query_one(f"#nav-{it.key}", Button)
             is_active = it.key == self.active_key
@@ -58,14 +62,49 @@ class NavTabs(Widget):
             btn.label = f"{prefix} {it.label}"
             btn.set_class(is_active, "-active")
 
+    # Mouse press → select & emit
     @on(Button.Pressed)
     def _on_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id or ""
         if not btn_id.startswith("nav-"):
             return
         key = btn_id[4:]
+        self._select_and_emit(key)
+
+    # Keyboard actions
+    def action_nav_up(self) -> None:
+        idx = self._index_of(self.active_key)
+        if idx is None:
+            return
+        self._select(self.items[(idx - 1) % len(self.items)].key)
+
+    def action_nav_down(self) -> None:
+        idx = self._index_of(self.active_key)
+        if idx is None:
+            return
+        self._select(self.items[(idx + 1) % len(self.items)].key)
+
+    def action_nav_activate(self) -> None:
+        self._select_and_emit(self.active_key)
+
+    # Helpers
+    def _index_of(self, key: str) -> int | None:
+        for i, it in enumerate(self.items):
+            if it.key == key:
+                return i
+        return None
+
+    def _select(self, key: str) -> None:
         if key == self.active_key:
             return
         self.active_key = key
         self._refresh_visuals()
+        # keep focus on the active button for a11y
+        try:
+            self.query_one(f"#nav-{key}", Button).focus()
+        except Exception:
+            pass
+
+    def _select_and_emit(self, key: str) -> None:
+        self._select(key)
         self.post_message(self.NavSelected(key))
