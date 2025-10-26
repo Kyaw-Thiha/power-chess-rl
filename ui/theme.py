@@ -6,7 +6,7 @@ TOKYONIGHT_CSS = """
 
 #titlebar {
   dock: top;
-  height: 1;
+  height: 3; 
   border: solid #2e3a59;
   background: #0f1117;
   color: #c0caf5;

@@ -88,14 +88,26 @@ class PowerChessUI(App[None]):
         if page is not None:
             main_container.mount(page)
 
-        # try focusing the board; if absent, focus the main container
-        try:
-            main_container.query_one("#board").focus()
-        except Exception:
-            main_container.focus()
+        # ↓↓↓ defer focus + titlebar update to next tick
+        def _after_mount() -> None:
+            # focus board if available; otherwise the main container
+            try:
+                main_container.query_one("#board").focus()
+            except Exception:
+                main_container.focus()
+            # ensure focus ends in MAIN after the layout settles
+            self.set_timer(0, self.action_focus_main)
 
-        titlebar = cast("Static", self.query_one("#titlebar"))
-        titlebar.update(f" PowerChess RL — {key.upper()} ")
+            # update titlebar text safely
+            try:
+                from typing import cast
+
+                titlebar = cast("Static", self.query_one("#titlebar"))
+                titlebar.update(f" PowerChess RL — {key.upper()} ")
+            except Exception:
+                pass
+
+        self.set_timer(0, _after_mount)
 
         self.query_one(StatusBar).set_message(f"Page: {key}")
 

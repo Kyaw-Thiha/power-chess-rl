@@ -129,6 +129,11 @@ class NavTabs(Widget):
     def _select_and_emit(self, key: str) -> None:
         self._select(key)
         self.post_message(self.NavSelected(key))
+        # hand off focus to MAIN right away so arrows work there
+        try:
+            self.app.action_focus_main()  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
     @on(Focus)
     def _on_focus(self, event: Focus) -> None:
