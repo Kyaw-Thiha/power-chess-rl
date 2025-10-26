@@ -73,11 +73,13 @@ constexpr Power power(Code c) {
 constexpr bool is_empty(Code c) {
   return unit_type(c) == EMPTY;
 }
+
 constexpr bool is_p1(Code c) {
-  return (c & SIDE_MASK) == 0;
+  return !is_empty(c) && (c & SIDE_MASK) == 0;
 }
+
 constexpr bool is_p2(Code c) {
-  return (c & SIDE_MASK) != 0;
+  return !is_empty(c) && (c & SIDE_MASK) != 0;
 }
 
 // Mutators (return modified copies)
