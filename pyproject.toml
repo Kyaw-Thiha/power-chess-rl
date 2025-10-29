@@ -19,6 +19,7 @@ dependencies = [
   "torch>=2.2",
   "ray==2.49.2",
   "ray[rllib]==2.49.2",
+  "pytest>=8.0",
 ]
 
 [tool.scikit-build]
@@ -27,7 +28,7 @@ wheel.packages = ["power_chess"]
 cmake.build-type = "Release"
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff", "mypy", "wandb"]
+dev = [ "ruff", "mypy", "wandb"]
 
 [tool.black]
 line-length = 130
