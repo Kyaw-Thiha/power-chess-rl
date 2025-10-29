@@ -10,7 +10,6 @@ compile_commands.json
 # Virtual envs & packaging
 .venv/
 .env/
-env/
 venv/
 dist/
 *.egg-info/
